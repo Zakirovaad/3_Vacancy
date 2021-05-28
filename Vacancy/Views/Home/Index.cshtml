@@ -1,0 +1,370 @@
+﻿@{
+    // ViewBag.Title = "Все вакансии";
+}
+
+<style>
+    #myTable1 tr > *:nth-child(2) {
+        display: none;
+    }
+
+    .inp {
+        display: flex;
+    }
+
+    #loading {
+        width: 100%;
+        height: 100%;
+        top: 0px;
+        left: 0px;
+        position: fixed;
+        opacity: 0.7;
+        background-color: #fff;
+        display: block;
+        z-index: 99
+    }
+
+    #loading-image {
+        position: absolute;
+        top: 30%;
+        left: 30%;
+        z-index: 100
+    }
+
+</style>
+
+<!--
+-->
+<div id="loading">
+    <img id="loading-image" src="~/images/Loading_icon.gif" alt="Loading..." />
+</div>
+
+
+<p>
+    <button id="disable_but" name="disable_but"> Отключить HH.ru</button>
+
+</p>
+
+<div class="inp">
+    <form class="inp">
+        <input id="search_text" type="search" name="search_text" placeholder="Введите должность, организацию или тип занятости" class="form-control" width="10000" />
+        <input id="search_vac" type="image" src="~/images/search_img.png" class="btn btn-default" width="45" height="35" />
+    </form>
+    <form class="inp">
+        <input id="search_null" name="search_null_text" type="image" src="~/images/close_img.png" class="btn btn-default" width="45" height="35" />
+    </form>
+
+</div>
+
+
+<h2>Вакансии дня г. Уфы</h2>
+<table id="myTable" class="table table-condensed table-striped  col-md-8">
+    <thead><tr><th>№</th><th>id</th><th>Заголовок</th><th>Оклад</th><th>Организация</th><th>Контактное лицо</th><th>Телефон</th><th>Тип занятости</th></tr></thead>
+    <tbody>
+    </tbody>
+</table>
+
+
+@section scripts
+{
+    <script src="~/Scripts/scripts_1.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <script type="text/javascript">
+        $(window).on('load', function () {
+            setTimeout(removeLoader, 5000); //wait for page load PLUS two seconds.
+        });
+
+        function removeLoader() {
+            $("#loading").fadeOut(1000, function () {
+                // fadeOut complete. Remove the loading div
+                $("#loading").hide(); //makes page more lightweight
+
+            });
+        }
+
+        $(document).ready(function () {
+            let bt = document.getElementById("disable_but");
+            bt.disabled = true;
+
+            GetVacancyFromDB(function (vlist) {
+                if ((vlist != null) && (vlist.length != 0)) {
+                    dis_but = 2;
+                    bt.textContent = 'Подключить HH.ru';
+                }
+                else dis_but = 1;
+            });
+
+            GetVacancyList(dis_but);
+
+            bt.disabled = false;
+
+            $("#search_vac").click(function (event) {
+                event.preventDefault();
+                Search_vacancy(1);
+            });
+
+            $("#search_null").click(function (event) {
+                event.preventDefault();
+                Search_vacancy(2);
+            });
+
+            $("#disable_but").click(function (event) {
+                $("#loading").show();
+                event.preventDefault();
+                Dis_En_hh(dis_but);
+                
+
+            });
+
+        });
+
+        function Dis_En_hh(pdis_but) {
+            if (pdis_but == 1) {
+                pdis_but = 2;
+
+                let bt = document.getElementById("disable_but");
+                bt.textContent = 'Подключить HH.ru';
+                GetVacancyList(pdis_but);
+
+            }
+            else {
+                pdis_but = 1;
+
+                let bt = document.getElementById("disable_but");
+                bt.textContent = 'Отключить HH.ru';
+                GetVacancyList(pdis_but);
+            }
+        }
+
+        function GetDescription(callback, id) {  //Для того, чтобы доп. информацию про вакансию сохранить
+            var id_hh = Number(id);
+            $.ajax({
+                url: 'https://api.hh.ru/vacancies/' + id_hh,
+                type: 'GET',
+                dataType: 'json',
+                async: false,
+                success: function (data) {
+                    if (data != null) {
+                        callback(data, id_hh);
+                    }
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+
+        function Search_vacancy(mode) {
+
+            let rows = document.querySelector("tbody");
+            let tb = document.getElementById("myTable");
+            let s_el = document.getElementById("search_text");
+            var cnt = rows.rows.length;
+
+            for (var i = cnt; i; i--) {
+                tb.deleteRow(i);
+            }
+            if (mode == 2) {
+                var i;
+                for (i = 0; i < search_vac.length; i++) {
+                    var vacancy = search_vac[i];// ParseVacancy(search_vac[i]);
+                    rows.append(row(vacancy, i));
+                }
+                s_el.value = "";
+            }
+            else {
+                var data = search_vac;
+
+                var search = s_el.value;
+                var obj = [], index = 0;
+
+                for (var i = 0; i < data.length; i++) {
+                    // var data_parse = ParseVacancy(data.items[i]);
+                    if ((data[i].name.toString().toLowerCase().indexOf(search.toLowerCase()) != -1) |
+                        (data[i].organization.toString().toLowerCase().indexOf(search.toLowerCase()) != -1) |
+                        (data[i].empl_type.toString().toLowerCase().indexOf(search.toLowerCase()) != -1)
+
+                    ) {
+                        obj[index] = data[i].name;
+                        index++;
+                        rows.append(row(data[i], index - 1));
+
+                    }
+                }
+            }
+        }
+        // Получение всех вакансий по ajax-запросу
+            function GetVacancyList(pdis_but) {
+
+            let rows = document.querySelector("tbody");
+            let tb = document.getElementById("myTable");
+            var cnt = rows.rows.length;
+
+            for (var i = cnt; i; i--) {
+                tb.deleteRow(i);
+            }
+
+            if (pdis_but == 1) {
+                $.ajax({
+                    url: 'https://api.hh.ru/vacancies/?page=0&per_page=50&premium=true&area=99&only_with_salary=true',  //'/api/values/',
+                    type: 'GET',
+                    dataType: 'json',
+                    //async: false,
+                    success: function (data) {
+                        // search_vac = data;
+                        global_vac = data;
+                        for (var i = 0; i < global_vac.items.length; i++) {
+                            GetDescription(function (vac_item) {
+                                global_vac.items[i] = vac_item;
+                                //  search_vac.items[i] = vac_item;
+                            }, global_vac.items[i].id);
+                        }
+
+                        AddVacancy(global_vac);
+                        ShowVacancy();
+                        dis_but = pdis_but;
+                        $("#loading").hide();
+                    },
+                    error: function (x, y, z) {
+                        alert(x + '\n' + y + '\n' + z);
+                    }
+                });
+            }
+            else {
+                ShowVacancy();
+                dis_but = pdis_but;
+                $("#loading").hide();
+            }
+
+        }
+
+
+        function AddVacancy(dt_list) {
+            var i;
+            for (i = 0; i < dt_list.items.length; i++) {
+
+                var vacancy = ParseVacancy(dt_list.items[i]);
+                $.ajax({
+                    url: '/api/values/',
+                    type: 'POST',
+                    data: JSON.stringify(vacancy),
+                    contentType: "application/json;charset=utf-8",
+                    async: false,
+                    success: function (data) {
+                        var vacancy_list = data;
+                    },
+                    error: function (x, y, z) {
+                        alert(x + '\n' + y + '\n' + z);
+                    }
+                });
+            }
+
+        }
+
+        function ShowVacancy() {
+
+            $.ajax({
+                url: '/api/values/',
+                type: 'GET',
+                dataType: 'json',
+                async: false,
+                success: function (data) {
+                    search_vac = data;
+                    let rows = document.querySelector("tbody");
+                    var i;
+                    var cnt = data.length;
+                    if (cnt != 0) {
+                        for (i = 0; i < 50; i++) {
+                            rows.append(row(data[i], i));
+                        }
+                    }
+
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+
+        function row(vacancy, num) {
+
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", vacancy.id);
+
+            const numTd = document.createElement("td");
+            numTd.append(num + 1);
+            tr.append(numTd);
+
+            const idTd = document.createElement("td");
+            idTd.append(vacancy.id_hh);
+            tr.append(idTd);
+
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", vacancy.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.setAttribute("target", "_blank");
+           // editLink.setAttribute("href", "Details?id=" + vacancy.id);
+            //editLink.setAttribute("href", "https://" + document.location.host + document.location.pathname + "/Details?id=" + vacancy.id);
+            editLink.setAttribute("href", 'https://' + window.location.host + "/Home/Details?id=" + vacancy.id); // "Details?id=" + vacancy.id);
+
+            editLink.append(vacancy.name);
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetVacancy(vacancy.id);
+            });
+            linksTd.append(editLink);
+
+            tr.appendChild(linksTd);
+
+            const salTd = document.createElement("td");
+            salTd.append(vacancy.salary);
+            tr.append(salTd);
+
+            const orgTd = document.createElement("td");
+            orgTd.append(vacancy.organization);
+            tr.append(orgTd);
+
+            const contTd = document.createElement("td");
+            contTd.append(vacancy.contact_person);
+            tr.append(contTd);
+
+            const phonTd = document.createElement("td");
+            phonTd.append(vacancy.phone_number);
+            tr.append(phonTd);
+
+            const emplTd = document.createElement("td");
+            emplTd.append(vacancy.empl_type);
+            tr.append(emplTd);
+
+            return tr;
+        }
+
+        function GetVacancy(id) {
+           // document.location.href = "Details?id=" + id;
+            window.location.href = 'https://' + window.location.host + "/Home/Details?id=" + id; // "Details?id=" + id;
+
+            target = "_blank";
+
+        }
+
+        function GetVacancyFromDB(callback) {
+
+            $.ajax({
+                url: '/api/values/',
+                type: 'GET',
+                dataType: 'json',
+                async: false,
+                success: function (data) {
+                    callback(data);
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,154 @@
+﻿@{
+   // ViewBag.Title = "Все вакансии";
+}
+<style>
+    .bloko-header-1, .bloko-section-header-1 {
+        font-size: 36px;
+        font-weight: 400;
+        margin: 0 0 15px;
+        padding: 0;
+        font-family: ProximaNovaCond,Arial Narrow,Roboto Condensed,Arial,sans-serif;
+    }
+ </style>
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title></title>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div id="div1" class="container">
+
+
+            </div>
+        </nav>
+    </header>
+
+    <div id="div2" class="container">
+
+
+    </div>
+</body>
+
+@section scripts
+{   <script src="~/Scripts/scripts_1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+           // var vacancy = localStorage.getItem('vacancyDetails');
+
+            var url_string = window.location.href;
+            var url = new URL(url_string);
+            var paramValue = url.searchParams.get("id");
+            GetVacancy(paramValue);
+
+
+        });
+
+        function GetVacancy(id) {
+            $.ajax({
+                url: '/api/values/' + id,
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    if (data != null) {
+                       // var vacancy = ParseVacancy(data);
+                        GetVacancyDetails(data);
+
+                    }
+                    else {
+                        alert("Такой вакансии не существует");
+                    }
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+
+        function GetVacancyDetails(list) {
+
+            let title = document.querySelector("title");
+            title.append(list.name);
+
+            let body = document.querySelector("body");
+
+           const h1 = document.createElement("h1");
+            //h1.setAttribute("class", "bloko-header-1");
+            h1.append(list.name);
+
+            let div1 = document.getElementById("div1");
+            div1.append(h1);
+
+            const dl = document.createElement("dl");
+            dl.setAttribute("class", "dl-horizontal");
+
+            const salDt = document.createElement("dt");
+            salDt.append("Оклад");
+            dl.append(salDt);
+
+            const salDd = document.createElement("dd");
+            salDd.append(list.salary);
+            dl.append(salDd);
+
+            const br1 = document.createElement("br")
+            dl.append(br1);
+
+            const orgDt = document.createElement("dt");
+            orgDt.append("Организация");
+            dl.append(orgDt);
+
+            const orgDd = document.createElement("dd");
+            orgDd.append(list.organization);
+            dl.append(orgDd);
+
+            const br2 = document.createElement("br")
+            dl.append(br2);
+
+            const emplDt = document.createElement("dt");
+            emplDt.append("Тип занятости");
+            dl.append(emplDt);
+
+            const emplDd = document.createElement("dd");
+            emplDd.append(list.empl_type);
+            dl.append(emplDd);
+
+            const br3 = document.createElement("br")
+            dl.append(br3);
+
+            const contDt = document.createElement("dt");
+            contDt.append("Контактное лицо");
+            dl.append(contDt);
+
+            const contDd = document.createElement("dd");
+            contDd.append(list.contact_person);
+            dl.append(contDd);
+
+            const br4 = document.createElement("br")
+            dl.append(br4);
+
+            const phoneDt = document.createElement("dt");
+            phoneDt.append("Телефон");
+            dl.append(phoneDt);
+
+            const phoneDd = document.createElement("dd");
+            phoneDd.append(list.phone_number);
+            dl.append(phoneDd);
+
+            const br5 = document.createElement("br")
+            dl.append(br5);
+
+            const div2 = document.getElementById("div2");
+            div2.insertAdjacentHTML("beforeEnd", list.description);
+
+            body.append(dl);
+            body.append(div2);
+            return body;
+        }
+    </script>
+}
+
+</html>
